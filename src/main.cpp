@@ -1,36 +1,39 @@
 // Controller used m5stack MATRIX
-// The time delta is not used for speed synchronization
 // Created by YarLikViD
 
 #include "M5Atom.h"
+#include "config.h"
 float accX = 0, accY = 0, accZ = 0; // Accelerometer accelerations
-
-float x_limit = 20, y_limit = 20;
-
-float speedLimit = 5; // set the speed limit
-
 int led_x, led_y;
 
-struct Pixel
+int deltaTime = 0;
+
+void pixelsHandler(Pixel &pixel)
 {
-  float x;
-  float y;
+}
 
-  float x_speed;
-  float y_speed;
+void calcCollision(Pixel &pixel)
+{
+  if (pixel.x > x_limit || pixel.x < (-x_limit))
+  {
+    pixel.x_speed *= -1 * pixel.elasticity;
+  }
 
-  float elasticity;
-  int color;
-};
+  if (pixel.y > y_limit || pixel.y < (-y_limit))
+  {
+    pixel.y_speed *= -1 * pixel.elasticity;
+  }
 
-//You can set multiple pixels
-Pixel pixels[1] = {
-    {10, 10, 0, 0, 0.80, 0xFF0000},
-};
+  // limit positions
+  pixel.x = (pixel.x > x_limit) ? x_limit : pixel.x;
+  pixel.x = (pixel.x < -x_limit) ? -x_limit : pixel.x;
+
+  pixel.y = (pixel.y > y_limit) ? y_limit : pixel.y;
+  pixel.y = (pixel.y < -y_limit) ? -y_limit : pixel.y;
+}
 
 void calcSpeedPos(Pixel &pixel)
 {
-
   // Speed calculation
   pixel.x_speed += accX;
   pixel.y_speed += accY;
@@ -48,22 +51,7 @@ void calcSpeedPos(Pixel &pixel)
   pixel.x += pixel.x_speed;
   pixel.y += pixel.y_speed;
 
-  if (pixel.x > x_limit || pixel.x < (-x_limit))
-  {
-    pixel.x_speed *= -1 * pixel.elasticity;
-  }
-
-  if (pixel.y > y_limit || pixel.y < (-y_limit))
-  {
-    pixel.y_speed *= -1 * pixel.elasticity;
-  }
-
-  // limit positions
-  pixel.x = (pixel.x > x_limit) ? x_limit : pixel.x;
-  pixel.x = (pixel.x < -x_limit) ? -x_limit : pixel.x;
-
-  pixel.y = (pixel.y > y_limit) ? y_limit : pixel.y;
-  pixel.y = (pixel.y < -y_limit) ? -y_limit : pixel.y;
+  calcCollision(pixel);
 }
 
 void posToLEDPos(Pixel &pixel)
@@ -84,6 +72,7 @@ void draw()
   M5.dis.fillpix(0x000000);
   for (auto &pixel : pixels)
   {
+    pixelsHandler(pixel);
     calcSpeedPos(pixel);
     posToLEDPos(pixel);
     M5.dis.drawpix(led_x, led_y, pixel.color);
@@ -92,7 +81,10 @@ void draw()
 
 void loop()
 {
+  int t = millis();
   M5.IMU.getAccelData(&accX, &accY, &accZ);
   draw();
   delay(10);
+  deltaTime = millis() - t;
+  Serial.println();
 }
