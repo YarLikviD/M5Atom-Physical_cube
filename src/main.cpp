@@ -86,5 +86,5 @@ void loop()
   draw();
   delay(10);
   deltaTime = millis() - t;
-  Serial.println();
+  // Serial.println(deltaTime);
 }
